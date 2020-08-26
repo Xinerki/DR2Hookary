@@ -184,7 +184,23 @@ void Log(char* message, ...)
 	_vsnprintf(buffer, sizeof(buffer), message, args);
 	va_end(args);
 
-	_snprintf(buffer2, sizeof(buffer2), "[DR2ML] %s\n", buffer);
+	_snprintf(buffer2, sizeof(buffer2), "[KGDR2] %s\n", buffer);
+
+	printf(buffer2);
+	OutputDebugStringA(buffer2); // for debugview output if console isn't created
+}
+
+void DebugLog(char* message, ...)
+{
+	va_list args;
+	char buffer[1024];
+	char buffer2[1024];
+
+	va_start(args, message);
+	_vsnprintf(buffer, sizeof(buffer), message, args);
+	va_end(args);
+
+	_snprintf(buffer2, sizeof(buffer2), "%s", buffer);
 
 	printf(buffer2);
 	OutputDebugStringA(buffer2); // for debugview output if console isn't created
@@ -237,12 +253,12 @@ void RenderText(float posX, float posY, float r, float g, float b, float a, char
 	ThisCall<void>(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
 }
 
-void OnRender(int *a1, double *a2)
+double __cdecl OnRender(__int64 a1, __int64 a2)
 {
 	// 0.94f, 0.59f, 0.24f
-	RenderText(0.5, 0.5, 1.0f, 1.0f, 1.0f, 1.0f, "BIG", 0.0, 2, 5.0);
+	RenderText(0.05f, 0.075f, 1.0f, 1.0f, 1.0f, 1.0f, "KGDR2? :)", 0.0f, 2, 1.0f);
 
-	//Call(0x4449C0, a1, a2);
+	return Cdecl<double>(0xA3A500, a1, a2);
 }
 
 /*
@@ -289,7 +305,7 @@ static int(__fastcall*g_processDataFileOrig)(int a2, char** a3, int a4, int a5, 
 
 char* fileData;
 
-char* __stdcall LoadDatafile(DWORD*& _this, char* FILE, int a3, int a4, int a5, int a6, int a7)
+char* LoadDatafile(DWORD* _this, char* FILE, int a3, int a4, int a5, int a6, int a7)
 {
 	static bool loadedDataFile = false;
 
@@ -319,7 +335,7 @@ char* __stdcall ProcessDatafile(void*& _this, int a2, char** a3, int a4, int a5,
 	}
 	*/
 
-	Log("Loading datafile %s", a3);
+	//Log("Loading datafile %s", a3);
 
 	return ((char* (__thiscall*)(void*, int, char**, int, int, char*))0x727DD0)(fileProcessor__inst, a2, a3, a4, a5, a6);
 	//return ThisCall<char>(0x727DD0, _this, a2, a3, a4, a5, a6);
@@ -577,6 +593,8 @@ BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
 		MakeCALL(0xA532D0, mmmmmmno); // no more XLiveRender it die 1950-2020
 		//MakeNOP(0x8C4CBB, 40);
 
+		MakeJMP(0xA3A0E0, DebugLog);
+
 		//MakeCALL(0x814291, idkman);
 		//MakeCALL(0x744925, snprintfHook);
 
@@ -587,7 +605,7 @@ BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
 		//MH_CreateHook((void*)0x727DD0, ProcessDatafile, (void**)&g_processDataFileOrig);
 		MH_EnableHook(MH_ALL_HOOKS);
 
-		//MakeCALL(0x48F392, OnRender);
+		MakeCALL(0x7B3002, OnRender);
 		attach_console();
 	}
 	return TRUE;
