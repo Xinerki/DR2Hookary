@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
+#include <experimental/filesystem>
 #include <hook\HookingUtils.hpp>
 #include <hook\HookFunction.hpp>
 
@@ -427,17 +428,6 @@ bool mmmmmmno()
 	return false;
 }
 
-static LRESULT(WINAPI *g_origWndProc)(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-LRESULT wndProxy(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	if (uMsg == 6) // focus loss
-	{
-		return false;
-	}
-	return g_origWndProc(hWnd, uMsg, wParam, lParam);
-}
-
 BYTE *WeirdAssert(char* a1, BYTE* a2, BYTE* a3, int a4)
 {
 	BYTE *result;
@@ -495,18 +485,29 @@ int snprintfHook(char* Buffer, size_t Size, char* _Format, ...)
 
 bool bDebugEnabled = GetPrivateProfileIntA("GLOBAL", "debug_enabled", 0, ".\\DR2Hookary.ini") == 1;
 bool bEnableQuickieDebugMenu = GetPrivateProfileIntA("GLOBAL", "enable_quickie_debug_menu", 0, ".\\DR2Hookary.ini") == 1;
+bool bEnableDebugJumpMenu = GetPrivateProfileIntA("GLOBAL", "enable_debug_jump_menu", 0, ".\\DR2Hookary.ini") == 1;
 bool bSkipLogos = GetPrivateProfileIntA("GLOBAL", "skip_logos", 0, ".\\DR2Hookary.ini") == 1;
 bool bWindowed = GetPrivateProfileIntA("GLOBAL", "windowed", 0, ".\\DR2Hookary.ini") == 1;
 bool bBorderless = GetPrivateProfileIntA("GLOBAL", "borderless", 0, ".\\DR2Hookary.ini") == 1;
 
+#define BLUE_MENU
+
 void ApplyDebugPatches(int __)
 {
-
 	Call<void>(0x7BC490, __); // LoadIniConfig
+
+#ifdef BLUE_MENU
+		//MemWrite(0xDDCB28, 1); // debug_show_loading_time
+		MemWrite(0xDDCAD4, 1); // enable_dev_features
+		MemWrite(0xDDC96F, 1); // limited_debug_menu
+		MemWrite(0xDDCB1F, 1); // enable_one_button_debug_menu
+#endif
+
 	MemWrite(0xD63FCC, !bDebugEnabled); // IsRetail
-	MemWrite(0xDDCB21, bDebugEnabled); // enable_quickie_debug_menu - needs to be toggled later?
-	MemWrite(0xDDCB1E, bDebugEnabled); // enable_dev_only_debug_tiwwchnt
-	MemWrite(0xDDCB29, bDebugEnabled); // enable_debug_jump_menu
+	MemWrite(0xDDCAD4, bDebugEnabled); // enable_dev_features
+	MemWrite(0xDDCB21, bEnableQuickieDebugMenu); // enable_quickie_debug_menu - needs to be toggled later?
+	MemWrite(0xDDCB1E, bEnableQuickieDebugMenu); // enable_dev_only_debug_tiwwchnt
+	MemWrite(0xDDCB29, bEnableDebugJumpMenu); // enable_debug_jump_menu
 	MemWrite(0xDDCC5B, bSkipLogos); // skip_logos
 
 	if (bWindowed == true)
@@ -527,15 +528,8 @@ void ApplyDebugPatches(int __)
 	//MemWrite(0x7AD107, 0xEB);
 
 					//"CL: 3221 (pc) (Regression) UK []"
-	CopyStr(0xCA4500, "CL: 3221 (ps5) (mom of mia) NO []");
+	//CopyStr(0xCA4500, "CL: 3221 (ps5) (mom of mia) NO []");
 	//CopyStr(0xDDC438, "CL: 3221 (ps5) (mom of mia) UK []");
-
-	/*
-	MemWrite(0xDDCB28, 1);
-	MemWrite(0xDDCAD4, 1); // enable_dev_features
-	MemWrite(0xDDC96F, 1); // limited_debug_menu
-	MemWrite(0xDDCB1F, 1); // enable_one_button_debug_menu
-	*/
 
 	/*
 	MakeCALL(0x7448E8, CatchThis);
@@ -546,6 +540,10 @@ void ApplyDebugPatches(int __)
 	// fix a missing newline
 	CopyStr(0xCEA790, "User: %d change login status! P2P will be shutdown!\n");
 
+	// put crashes in separate folder
+	std::experimental::filesystem::create_directory("crashes");
+	CopyStr(0xCC8B64, "crashes\\crash_%m%d_%H%M%S.txt");
+
 	//LoadDatafile("mods/data/safehouse.txt", 0, (BYTE*)1, 1);
 
 	/*
@@ -555,62 +553,6 @@ void ApplyDebugPatches(int __)
 	ProcessDataFile(v4, v10, 0, 0, "mods\data\safehouse.txt");
 	Call(0xA20FC0, v4);
 	*/
-}
-
-static HWND(*g_createWindowOrig)(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle);
-
-HWND CreateWindowHk(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle)
-{
-	if (xRight == 0 || yBottom == 0)
-	{
-		Log("Window ded, resurrecting");
-		GetDesktopResolution(xRight, yBottom);
-	}
-
-	//return g_createWindowOrig(lpWindowName, xRight, yBottom, dwStyle);
-
-	//HINSTANCE v4; // esi
-	HWND result; // eax
-	struct tagRECT rc; // [esp+4h] [ebp-38h]
-	WNDCLASSW WndClass; // [esp+14h] [ebp-28h]
-
-	auto ClassName = "DeadRising2WindowClass";
-	auto ClassNameWide = L"DeadRising2WindowClass";
-	auto X = *MemRead<int*>(0xDDC9D8);
-	auto Y = *MemRead<int*>(0xDDC9DC);
-
-	Log("CREATING %s WINDOW WITH X = %d Y = %d W = %d H = %d\n", ClassName, X, Y, xRight, yBottom);
-
-	//v4 = GetModuleHandleW(0);
-	WndClass.style = 8;
-	//WndClass.lpfnWndProc = *(WNDPROC*)0x8C4C40;
-	WndClass.lpfnWndProc = *StdCall<WNDPROC*>(0x8C4C40);
-	WndClass.cbClsExtra = 0;
-	WndClass.cbWndExtra = 0;
-	WndClass.hInstance = NULL;
-	//WndClass.hIcon = LoadIconW(NULL, (LPCWSTR)0x65);
-	//WndClass.hCursor = LoadCursorW(0, (LPCWSTR)0x7F00);
-	//WndClass.hbrBackground = (HBRUSH)GetStockObject(4);
-	WndClass.lpszMenuName = 0;
-	WndClass.lpszClassName = ClassNameWide;
-
-	if (RegisterClassW(&WndClass) || (result = (HWND)GetLastError(), result == (HWND)1410))
-	{
-		SetRect(&rc, 0, 0, xRight, yBottom);
-		AdjustWindowRect(&rc, dwStyle, 0);
-		result = CreateWindowExW(0, ClassNameWide, lpWindowName, dwStyle, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, 0, 0, NULL, 0);
-
-		// set global hWnd
-		//*(HWND*)0xDE25E8 = result;
-		MemWrite(0xDE25E8, result);
-
-		if (result)
-		{
-			MoveWindow(result, X, Y, rc.right - rc.left, rc.bottom - rc.top, 1);
-			result = (HWND)WTSRegisterSessionNotification(result, 0);
-		}
-	}
-	return result;
 }
 
 HWND __cdecl InitializeGameWindow(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle)
