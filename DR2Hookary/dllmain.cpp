@@ -331,22 +331,23 @@ int snprintfHook(char* Buffer, size_t Size, char* _Format, ...)
 	return result;
 }
 
-bool DebugEnabled = GetPrivateProfileIntA("GLOBAL", "debug_enabled", 0, ".\\DR2Hookary.ini") == 1;
-bool EnableQuickieDebugMenu = GetPrivateProfileIntA("GLOBAL", "enable_quickie_debug_menu", 0, ".\\DR2Hookary.ini") == 1;
-bool SkipLogos = GetPrivateProfileIntA("GLOBAL", "skip_logos", 0, ".\\DR2Hookary.ini") == 1;
-bool Windowed = GetPrivateProfileIntA("GLOBAL", "windowed", 0, ".\\DR2Hookary.ini") == 1;
+bool bDebugEnabled = GetPrivateProfileIntA("GLOBAL", "debug_enabled", 0, ".\\DR2Hookary.ini") == 1;
+bool bEnableQuickieDebugMenu = GetPrivateProfileIntA("GLOBAL", "enable_quickie_debug_menu", 0, ".\\DR2Hookary.ini") == 1;
+bool bSkipLogos = GetPrivateProfileIntA("GLOBAL", "skip_logos", 0, ".\\DR2Hookary.ini") == 1;
+bool bWindowed = GetPrivateProfileIntA("GLOBAL", "windowed", 0, ".\\DR2Hookary.ini") == 1;
+bool bBorderless = GetPrivateProfileIntA("GLOBAL", "borderless", 0, ".\\DR2Hookary.ini") == 1;
 
 void ApplyDebugPatches(int __)
 {
 
 	Call<void>(0x7BC490, __); // LoadIniConfig
-	MemWrite(0xD63FCC, !DebugEnabled); // IsRetail
-	MemWrite(0xDDCB21, DebugEnabled); // enable_quickie_debug_menu - needs to be toggled later?
-	MemWrite(0xDDCB1E, DebugEnabled); // enable_dev_only_debug_tiwwchnt
-	MemWrite(0xDDCB29, DebugEnabled); // enable_debug_jump_menu
-	MemWrite(0xDDCC5B, SkipLogos); // skip_logos
+	MemWrite(0xD63FCC, !bDebugEnabled); // IsRetail
+	MemWrite(0xDDCB21, bDebugEnabled); // enable_quickie_debug_menu - needs to be toggled later?
+	MemWrite(0xDDCB1E, bDebugEnabled); // enable_dev_only_debug_tiwwchnt
+	MemWrite(0xDDCB29, bDebugEnabled); // enable_debug_jump_menu
+	MemWrite(0xDDCC5B, bSkipLogos); // skip_logos
 
-	if (Windowed == true)
+	if (bWindowed == true)
 	{
 		MemWrite(0xDDCADD, 1); // OverrideRenderSettings
 		MemWrite(0xDDCADE, 0); // RenderFullScreen
@@ -450,8 +451,10 @@ HWND CreateWindowHk(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle
 
 HWND __cdecl InitializeGameWindow(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle)
 {
-	Log("Creating window %s with style %d", (char *)lpWindowName, WS_VISIBLE | WS_POPUP);
-	return Cdecl<HWND>(0x8C4D80, lpWindowName, xRight, yBottom, WS_VISIBLE | WS_POPUP);
+	if (bBorderless)
+		dwStyle = WS_VISIBLE | WS_POPUP;
+
+	return Cdecl<HWND>(0x8C4D80, lpWindowName, xRight, yBottom, dwStyle);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
