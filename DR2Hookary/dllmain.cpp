@@ -490,7 +490,7 @@ bool bSkipLogos = GetPrivateProfileIntA("GLOBAL", "skip_logos", 0, ".\\DR2Hookar
 bool bWindowed = GetPrivateProfileIntA("GLOBAL", "windowed", 0, ".\\DR2Hookary.ini") == 1;
 bool bBorderless = GetPrivateProfileIntA("GLOBAL", "borderless", 0, ".\\DR2Hookary.ini") == 1;
 
-#define BLUE_MENU
+//#define BLUE_MENU // it's not fun
 
 void ApplyDebugPatches(int __)
 {
