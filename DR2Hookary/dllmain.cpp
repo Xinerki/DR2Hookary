@@ -260,61 +260,6 @@ void CatchThis(int *_this, signed int a2)
 }
 */
 
-static HWND(*g_createWindowOrig)(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle);
-
-HWND CreateWindowHk(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle)
-{
-	if (xRight == 0 || yBottom == 0)
-	{
-		Log("Window ded, resurrecting");
-		GetDesktopResolution(xRight, yBottom);
-	}
-
-	return g_createWindowOrig(lpWindowName, xRight, yBottom, dwStyle);
-
-	//HINSTANCE v4; // esi
-	HWND result; // eax
-	struct tagRECT rc; // [esp+4h] [ebp-38h]
-	WNDCLASSW WndClass; // [esp+14h] [ebp-28h]
-
-	auto ClassName = "DeadRising2WindowClass";
-	auto ClassNameWide = L"DeadRising2WindowClass";
-	auto X = *(int*)0xDDC9D8;
-	auto Y = *(int*)0xDDC9DC;
-
-	Log("CREATING %s WINDOW WITH X = %d Y = %d W = %d H = %d\n", ClassName, X, Y, xRight, yBottom);
-
-	//v4 = GetModuleHandleW(0);
-	WndClass.style = 8;
-	WndClass.lpfnWndProc = *(WNDPROC*)0x8C4C40;
-	WndClass.cbClsExtra = 0;
-	WndClass.cbWndExtra = 0;
-	WndClass.hInstance = NULL;
-	//WndClass.hIcon = LoadIconW(NULL, (LPCWSTR)0x65);
-	//WndClass.hCursor = LoadCursorW(0, (LPCWSTR)0x7F00);
-	//WndClass.hbrBackground = (HBRUSH)GetStockObject(4);
-	WndClass.lpszMenuName = 0;
-	WndClass.lpszClassName = ClassNameWide;
-
-	if (RegisterClassW(&WndClass) || (result = (HWND)GetLastError(), result == (HWND)1410))
-	{
-		SetRect(&rc, 0, 0, xRight, yBottom);
-		AdjustWindowRect(&rc, dwStyle, 0);
-		result = CreateWindowExW(0, ClassNameWide, lpWindowName, dwStyle, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, 0, 0, NULL, 0);
-		
-		// set global hWnd
-		//*(HWND*)0xDE25E8 = result;
-		MemWrite(0xDE25E8, result);
-
-		if (result)
-		{
-			MoveWindow(result, X, Y, rc.right - rc.left, rc.bottom - rc.top, 1);
-			result = (HWND)WTSRegisterSessionNotification(result, 0);
-		}
-	}
-	return result;
-}
-
 bool mmmmmmno()
 {
 	return false;
@@ -386,34 +331,26 @@ int snprintfHook(char* Buffer, size_t Size, char* _Format, ...)
 	return result;
 }
 
+bool DebugEnabled = GetPrivateProfileIntA("GLOBAL", "debug_enabled", 0, ".\\DR2Hookary.ini") == 1;
+bool EnableQuickieDebugMenu = GetPrivateProfileIntA("GLOBAL", "enable_quickie_debug_menu", 0, ".\\DR2Hookary.ini") == 1;
+bool SkipLogos = GetPrivateProfileIntA("GLOBAL", "skip_logos", 0, ".\\DR2Hookary.ini") == 1;
+bool Windowed = GetPrivateProfileIntA("GLOBAL", "windowed", 0, ".\\DR2Hookary.ini") == 1;
+
 void ApplyDebugPatches(int __)
 {
-	//MakeJMP(0x8C4D80, CreateWindowHk);
-	//Call<int>(, CreateWindowHk);
-
-	MakeCALL(0xA532D0, mmmmmmno); // no more XLiveRender it die 1950-2020
-	//MakeNOP(0x8C4CBB, 40);
-
-	//MakeCALL(0x814291, idkman);
-	//MakeCALL(0x744925, snprintfHook);
-
-	MH_Initialize();
-	//MH_CreateHook((void*)0x8C4D80, CreateWindowHk, (void**)&g_createWindowOrig);
-	//MH_CreateHook(&DefWindowProcW, wndProxy, (void**)&g_origWndProc);
-	//MH_CreateHook((void*)0xA36B30, LoadDatafile, (void**)&g_loadDataFileOrig);
-	//MH_CreateHook((void*)0x727DD0, ProcessDatafile, (void**)&g_processDataFileOrig);
-	MH_EnableHook(MH_ALL_HOOKS);
 
 	Call<void>(0x7BC490, __); // LoadIniConfig
-	MemWrite(0xD63FCC, 0); // IsRetail
-	MemWrite(0xDDCB21, 1); // enable_quickie_debug_menu
-	MemWrite(0xDDCB1E, 1); // enable_dev_only_debug_tiwwchnt
-	MemWrite(0xDDCB29, 1); // enable_debug_jump_menu
+	MemWrite(0xD63FCC, !DebugEnabled); // IsRetail
+	MemWrite(0xDDCB21, DebugEnabled); // enable_quickie_debug_menu - needs to be toggled later?
+	MemWrite(0xDDCB1E, DebugEnabled); // enable_dev_only_debug_tiwwchnt
+	MemWrite(0xDDCB29, DebugEnabled); // enable_debug_jump_menu
+	MemWrite(0xDDCC5B, SkipLogos); // skip_logos
 
-#ifdef WINDOWED
-	MemWrite(0xDDCADD, 1); // OverrideRenderSettings
-	MemWrite(0xDDCADE, 0); // RenderFullScreen
-#endif
+	if (Windowed == true)
+	{
+		MemWrite(0xDDCADD, 1); // OverrideRenderSettings
+		MemWrite(0xDDCADE, 0); // RenderFullScreen
+	}
 
 	//MakeCALL(0x728246, WeirdAssert);
 	//MakeCALL(0x7282F7, WeirdAssert);
@@ -422,10 +359,11 @@ void ApplyDebugPatches(int __)
 	
 	//MakeCALL(0x743B26, LoadDatafile);
 
+	// attempt to load ini files on startup didnt work
 	//MakeNOP(0x7AD107, 2);
-	MemWrite(0x7AD107, 0xEB);
+	//MemWrite(0x7AD107, 0xEB);
 
-	//MemWrite(0xCA4500, "CL: 3221 (pc) (Regression) UK []")
+	//CopyStr(0xCA4500, "CL: 3221 (pc) (Regression) UK []")
 
 	/*
 	MemWrite(0xDDCB28, 1);
@@ -440,6 +378,7 @@ void ApplyDebugPatches(int __)
 	//MakeCALL(0x743AB2, CatchThis2);
 	//MakeCALL(0x83EAD3, OnLevelLoad);
 
+	// fix a missing newline
 	CopyStr(0xCEA790, "User: %d change login status! P2P will be shutdown!\n");
 
 	//LoadDatafile("mods/data/safehouse.txt", 0, (BYTE*)1, 1);
@@ -453,11 +392,92 @@ void ApplyDebugPatches(int __)
 	*/
 }
 
+static HWND(*g_createWindowOrig)(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle);
+
+HWND CreateWindowHk(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle)
+{
+	if (xRight == 0 || yBottom == 0)
+	{
+		Log("Window ded, resurrecting");
+		GetDesktopResolution(xRight, yBottom);
+	}
+
+	//return g_createWindowOrig(lpWindowName, xRight, yBottom, dwStyle);
+
+	//HINSTANCE v4; // esi
+	HWND result; // eax
+	struct tagRECT rc; // [esp+4h] [ebp-38h]
+	WNDCLASSW WndClass; // [esp+14h] [ebp-28h]
+
+	auto ClassName = "DeadRising2WindowClass";
+	auto ClassNameWide = L"DeadRising2WindowClass";
+	auto X = *MemRead<int*>(0xDDC9D8);
+	auto Y = *MemRead<int*>(0xDDC9DC);
+
+	Log("CREATING %s WINDOW WITH X = %d Y = %d W = %d H = %d\n", ClassName, X, Y, xRight, yBottom);
+
+	//v4 = GetModuleHandleW(0);
+	WndClass.style = 8;
+	//WndClass.lpfnWndProc = *(WNDPROC*)0x8C4C40;
+	WndClass.lpfnWndProc = *StdCall<WNDPROC*>(0x8C4C40);
+	WndClass.cbClsExtra = 0;
+	WndClass.cbWndExtra = 0;
+	WndClass.hInstance = NULL;
+	//WndClass.hIcon = LoadIconW(NULL, (LPCWSTR)0x65);
+	//WndClass.hCursor = LoadCursorW(0, (LPCWSTR)0x7F00);
+	//WndClass.hbrBackground = (HBRUSH)GetStockObject(4);
+	WndClass.lpszMenuName = 0;
+	WndClass.lpszClassName = ClassNameWide;
+
+	if (RegisterClassW(&WndClass) || (result = (HWND)GetLastError(), result == (HWND)1410))
+	{
+		SetRect(&rc, 0, 0, xRight, yBottom);
+		AdjustWindowRect(&rc, dwStyle, 0);
+		result = CreateWindowExW(0, ClassNameWide, lpWindowName, dwStyle, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, 0, 0, NULL, 0);
+
+		// set global hWnd
+		//*(HWND*)0xDE25E8 = result;
+		MemWrite(0xDE25E8, result);
+
+		if (result)
+		{
+			MoveWindow(result, X, Y, rc.right - rc.left, rc.bottom - rc.top, 1);
+			result = (HWND)WTSRegisterSessionNotification(result, 0);
+		}
+	}
+	return result;
+}
+
+HWND __cdecl InitializeGameWindow(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle)
+{
+	Log("Creating window %s with style %d", (char *)lpWindowName, WS_VISIBLE | WS_POPUP);
+	return Cdecl<HWND>(0x8C4D80, lpWindowName, xRight, yBottom, WS_VISIBLE | WS_POPUP);
+}
+
 BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
 {
 	if (nReason == DLL_PROCESS_ATTACH)
 	{
 		MakeCALL(0x7AD13C, ApplyDebugPatches);
+
+		MakeCALL(0x8CA6A1, InitializeGameWindow);
+		//MakeCALL(0x8CA6A1, CreateWindowHk);
+		//MakeJMP(0x8C4D80, CreateWindowHk);
+		//Call<int>(, CreateWindowHk);
+
+		MakeCALL(0xA532D0, mmmmmmno); // no more XLiveRender it die 1950-2020
+		//MakeNOP(0x8C4CBB, 40);
+
+		//MakeCALL(0x814291, idkman);
+		//MakeCALL(0x744925, snprintfHook);
+
+		MH_Initialize();
+		//MH_CreateHook((void*)0x8C4D80, CreateWindowHk, (void**)&g_createWindowOrig);
+		//MH_CreateHook(&DefWindowProcW, wndProxy, (void**)&g_origWndProc);
+		//MH_CreateHook((void*)0xA36B30, LoadDatafile, (void**)&g_loadDataFileOrig);
+		//MH_CreateHook((void*)0x727DD0, ProcessDatafile, (void**)&g_processDataFileOrig);
+		MH_EnableHook(MH_ALL_HOOKS);
+
 		//MakeCALL(0x48F392, OnRender);
 		attach_console();
 	}
