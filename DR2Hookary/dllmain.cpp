@@ -452,7 +452,7 @@ BYTE *__stdcall QuietAssert(char *error, BYTE* a2, BYTE* a3, int file)
 		if (result == a3)
 			break;
 	}
-	Log("File %s load failed: %s | %d", file, error, a2-a3);
+	Log("File %s load failed: %s | %d", file, error, a3-a2);
 	
 	//return 0;
 	return result;
