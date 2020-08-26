@@ -444,7 +444,7 @@ bool mmmmmmno()
 	return false;
 }
 
-BYTE *WeirdAssert(char* a1, BYTE* a2, BYTE* a3, int a4)
+BYTE *__stdcall QuietAssert(char *error, BYTE* a2, BYTE* a3, int file)
 {
 	BYTE *result;
 	for (result = a2; *result; ++result)
@@ -452,9 +452,10 @@ BYTE *WeirdAssert(char* a1, BYTE* a2, BYTE* a3, int a4)
 		if (result == a3)
 			break;
 	}
-	Log("File %s load failed: %s", a4, a1);
-	return 0;
-	//return result;
+	Log("File %s load failed: %s | %d", file, error, a2-a3);
+	
+	//return 0;
+	return result;
 }
 
 //int idkman(char* Buffer, const char* _Format, ...)
@@ -532,9 +533,6 @@ void ApplyDebugPatches(int __)
 		MemWrite(0xDDCADE, 0); // RenderFullScreen
 	}
 
-	//MakeCALL(0x728246, WeirdAssert);
-	//MakeCALL(0x7282F7, WeirdAssert);
-
 	//MakeJMP(0xA36B30, LoadDatafile, 3);
 	
 	//MakeCALL(0x743B26, LoadDatafile);
@@ -594,6 +592,9 @@ BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
 		//MakeNOP(0x8C4CBB, 40);
 
 		MakeJMP(0xA3A0E0, DebugLog);
+
+		MakeCALL(0x728246, QuietAssert);
+		MakeCALL(0x7282F7, QuietAssert);
 
 		//MakeCALL(0x814291, idkman);
 		//MakeCALL(0x744925, snprintfHook);
