@@ -12,7 +12,7 @@
 
 using namespace Util;
 
-char* OutfitTable[191] = {
+char* OutfitTable[1024] = {
 	"OUTFIT_DEFAULT",
 	"OUTFIT_COWBOY",
 	"OUTFIT_NAKED",
@@ -305,20 +305,21 @@ static int(__fastcall*g_processDataFileOrig)(int a2, char** a3, int a4, int a5, 
 
 char* fileData;
 
-char* LoadDatafile(DWORD* _this, char* FILE, int a3, int a4, int a5, int a6, int a7)
+char* LoadDatafile(DWORD* _this, int a3, int a4, int a5, int a6, int a7)
 {
+	/*
 	static bool loadedDataFile = false;
-
-	//printf("[KGDR2] Loading datafile %s", FILE);
-	Log("Loading datafile %s", FILE);
 
 	if (!loadedDataFile)
 	{
 		//loadedDataFile = true;
 		//fileData = ((char* (__thiscall*)(void*, char*, int, int, int, int, int))0xA36B30)(fileLoader__inst, "mods/data/fortune_exterior.txt", 21, 0, 1, 4, 1);
 	}
+	*/
 
-	return ((char* (__thiscall*)(void*, char*, int, int, int, int, int))0xA36B30)(_this, FILE, a3, a4, a5, a6, a7);
+	Log("Loading datafile %s", "data/datafile/items.txt");
+
+	return ((char* (__thiscall*)(void*, char*, int, int, int, int, int))0xA36B30)(_this, "data/datafile/items.txt", 21, 0, 1, 4, 1);
 	//return g_loadDataFileOrig(_this, FILE, a3, a4, a5, a6, a7);
 	//return ThisCall<char*>(0xA36B30, _this, FILE, a3, a4, a5, a6, a7);
 }
@@ -452,7 +453,7 @@ BYTE *__stdcall QuietAssert(char *error, BYTE* a2, BYTE* a3, int file)
 		if (result == a3)
 			break;
 	}
-	Log("File %s load failed: %s | %d", file, error, a3-a2);
+	Log("File %s load failed: %s | %d", file, error, result);
 	
 	//return 0;
 	return result;
@@ -500,6 +501,11 @@ int snprintfHook(char* Buffer, size_t Size, char* _Format, ...)
 	return result;
 }
 
+int __cdecl GetOutfitIdByName(const char* a1)
+{
+	return Call<int>(0x41FF30, a1);
+}
+
 bool bDebugEnabled = GetPrivateProfileIntA("GLOBAL", "debug_enabled", 0, ".\\DR2Hookary.ini") == 1;
 bool bEnableQuickieDebugMenu = GetPrivateProfileIntA("GLOBAL", "enable_quickie_debug_menu", 0, ".\\DR2Hookary.ini") == 1;
 bool bEnableDebugJumpMenu = GetPrivateProfileIntA("GLOBAL", "enable_debug_jump_menu", 0, ".\\DR2Hookary.ini") == 1;
@@ -532,6 +538,17 @@ void ApplyDebugPatches(int __)
 		MemWrite(0xDDCADD, 1); // OverrideRenderSettings
 		MemWrite(0xDDCADE, 0); // RenderFullScreen
 	}
+
+	MemWrite(0xDE25F2, 1); // SilentExitOnCrash, fixes quit 'crash'
+	MemWrite(0xE5B73C, 1); // dont debug break from inside exe
+
+	/*
+	for (int i = 0; i < 192; i++)
+		Log("Outfit ID %d = %s", i, OutfitTable[i]);
+	*/
+
+	// this works :D
+	//Log("OUTFIT_FEDORA = %d", GetOutfitIdByName("OUTFIT_FEDORA"));
 
 	//MakeJMP(0xA36B30, LoadDatafile, 3);
 	
@@ -595,6 +612,8 @@ BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
 
 		MakeCALL(0x728246, QuietAssert);
 		MakeCALL(0x7282F7, QuietAssert);
+
+		//MakeCALL(0x743B26, LoadDatafile);
 
 		//MakeCALL(0x814291, idkman);
 		//MakeCALL(0x744925, snprintfHook);
