@@ -520,10 +520,10 @@ void ApplyDebugPatches(int __)
 	Call<void>(0x7BC490, __); // LoadIniConfig
 
 #ifdef BLUE_MENU
-		//MemWrite(0xDDCB28, 1); // debug_show_loading_time
-		MemWrite(0xDDCAD4, 1); // enable_dev_features
-		MemWrite(0xDDC96F, 1); // limited_debug_menu
-		MemWrite(0xDDCB1F, 1); // enable_one_button_debug_menu
+	//MemWrite(0xDDCB28, 1); // debug_show_loading_time
+	MemWrite(0xDDCAD4, 1); // enable_dev_features
+	MemWrite(0xDDC96F, 1); // limited_debug_menu
+	MemWrite(0xDDCB1F, 1); // enable_one_button_debug_menu
 #endif
 
 	MemWrite(0xD63FCC, !bDebugEnabled); // IsRetail
