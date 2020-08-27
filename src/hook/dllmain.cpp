@@ -1,16 +1,5 @@
-#include <windows.h>
-#include <stdio.h>
-#include <experimental/filesystem>
-#include <hook\HookingUtils.hpp>
-#include <hook\HookFunction.hpp>
-
+#include <StdInc.h>
 #include "MinHook.h"
-#pragma comment(lib, "MinHook.lib")
-
-#include <wtsapi32.h>
-#pragma comment(lib, "Wtsapi32.lib")
-
-using namespace Util;
 
 char* OutfitTable[1024] = {
 	"OUTFIT_DEFAULT",
@@ -250,7 +239,9 @@ bool& RenderLocalPlayerPoisition = *reinterpret_cast<bool*>(0xDDCAEE);
 
 void RenderText(float posX, float posY, float r, float g, float b, float a, char *text, float idk, int s1, float scale)
 {
-	ThisCall<void>(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
+	//injector::function_hooker_thiscall<0xA71900, DWORD, float, float, float, float, float, float, char*, float, int, int, scale>();
+
+	//hook::ThisCall<void>(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
 }
 
 double __cdecl OnRender(__int64 a1, __int64 a2)
@@ -258,7 +249,7 @@ double __cdecl OnRender(__int64 a1, __int64 a2)
 	// 0.94f, 0.59f, 0.24f
 	RenderText(0.05f, 0.075f, 1.0f, 1.0f, 1.0f, 1.0f, "KGDR2? :)", 0.0f, 2, 1.0f);
 
-	return Cdecl<double>(0xA3A500, a1, a2);
+	return injector::fastcall<double(int64_t, int64_t)>::call(0xA3A500, a1, a2);
 }
 
 /*
@@ -280,10 +271,10 @@ DWORD& DatafileRoot2 = *reinterpret_cast<DWORD*>(0xDCB0FC);
 
 BYTE* AnotherLoadDatafile(BYTE* _this, size_t FILE, int a3, int a4, int a5, int a6)
 {
-	DWORD DatafileRoot2 = MemRead<DWORD>(0xE125C8);
+	DWORD DatafileRoot2 = injector::ReadMemory<DWORD>(0xE125C8);
 
 	//return ThisCall<BYTE*>(0xA36B30, DatafileRoot, FILE, a3, a4, a5, a6, a7);
-	return ThisCall<BYTE*>(0x8C0350, _this, (size_t)&FILE, a3, a4, a5, a6);
+	return injector::thiscall<BYTE* (byte*, size_t, int, int, int, int)>::call(0x8C0350, _this, (size_t)&FILE, a3, a4, a5, a6); // might not need _this
 }
 
 
@@ -360,7 +351,7 @@ void CatchThis2(DWORD* _this)
 
 int* GetLabelText(int _this, int id)
 {
-	return ThisCall<int*>(0xAC5400, _this, id);
+	return injector::thiscall<int*(int, int)>::call(0xAC5400, _this, id); // might not need _this
 }
 
 int OnLevelLoad(int a1)
@@ -430,7 +421,7 @@ int OnLevelLoad(int a1)
 
 	Log("Mod load attempt done");
 
-	return Call<int>(0xA56D30, a1);
+	return injector::stdcall<int(int)>::call(0xA56D30, a1);
 }
 
 /*
@@ -503,7 +494,7 @@ int snprintfHook(char* Buffer, size_t Size, char* _Format, ...)
 
 int __cdecl GetOutfitIdByName(const char* a1)
 {
-	return Call<int>(0x41FF30, a1);
+	return injector::stdcall<int(const char*)>::call(0x41FF30, a1);
 }
 
 bool bDebugEnabled = GetPrivateProfileIntA("GLOBAL", "debug_enabled", 0, ".\\DR2Hookary.ini") == 1;
@@ -517,30 +508,30 @@ bool bBorderless = GetPrivateProfileIntA("GLOBAL", "borderless", 0, ".\\DR2Hooka
 
 void ApplyDebugPatches(int __)
 {
-	Call<void>(0x7BC490, __); // LoadIniConfig
+	injector::fastcall<void(int)>::call(0x7BC490, __); // LoadIniConfig
 
 #ifdef BLUE_MENU
-	//MemWrite(0xDDCB28, 1); // debug_show_loading_time
-	MemWrite(0xDDCAD4, 1); // enable_dev_features
-	MemWrite(0xDDC96F, 1); // limited_debug_menu
-	MemWrite(0xDDCB1F, 1); // enable_one_button_debug_menu
+		//MemWrite(0xDDCB28, 1); // debug_show_loading_time
+		injector::WriteMemory(0xDDCAD4, 1); // enable_dev_features
+		injector::WriteMemory(0xDDC96F, 1); // limited_debug_menu
+		injector::WriteMemory(0xDDCB1F, 1); // enable_one_button_debug_menu
 #endif
 
-	MemWrite(0xD63FCC, !bDebugEnabled); // IsRetail
-	MemWrite(0xDDCAD4, bDebugEnabled); // enable_dev_features
-	MemWrite(0xDDCB21, bEnableQuickieDebugMenu); // enable_quickie_debug_menu - needs to be toggled later?
-	MemWrite(0xDDCB1E, bEnableQuickieDebugMenu); // enable_dev_only_debug_tiwwchnt
-	MemWrite(0xDDCB29, bEnableDebugJumpMenu); // enable_debug_jump_menu
-	MemWrite(0xDDCC5B, bSkipLogos); // skip_logos
+	injector::WriteMemory(0xD63FCC, !bDebugEnabled); // IsRetail
+	injector::WriteMemory(0xDDCAD4, bDebugEnabled); // enable_dev_features
+	injector::WriteMemory(0xDDCB21, bEnableQuickieDebugMenu); // enable_quickie_debug_menu - needs to be toggled later?
+	injector::WriteMemory(0xDDCB1E, bEnableQuickieDebugMenu); // enable_dev_only_debug_tiwwchnt
+	injector::WriteMemory(0xDDCB29, bEnableDebugJumpMenu); // enable_debug_jump_menu
+	injector::WriteMemory(0xDDCC5B, bSkipLogos); // skip_logos
 
 	if (bWindowed == true)
 	{
-		MemWrite(0xDDCADD, 1); // OverrideRenderSettings
-		MemWrite(0xDDCADE, 0); // RenderFullScreen
+		injector::WriteMemory(0xDDCADD, 1); // OverrideRenderSettings
+		injector::WriteMemory(0xDDCADE, 0); // RenderFullScreen
 	}
 
-	MemWrite(0xDE25F2, 1); // SilentExitOnCrash, fixes quit 'crash'
-	MemWrite(0xE5B73C, 1); // dont debug break from inside exe
+	injector::WriteMemory(0xDE25F2, 1); // SilentExitOnCrash, fixes quit 'crash'
+	injector::WriteMemory(0xE5B73C, 1); // dont debug break from inside exe
 
 	/*
 	for (int i = 0; i < 192; i++)
@@ -569,11 +560,11 @@ void ApplyDebugPatches(int __)
 	//MakeCALL(0x83EAD3, OnLevelLoad);
 
 	// fix a missing newline
-	CopyStr(0xCEA790, "User: %d change login status! P2P will be shutdown!\n");
+	injector::WriteMemory(0xCEA790, "User: %d change login status! P2P will be shutdown!\n");
 
 	// put crashes in separate folder
-	std::experimental::filesystem::create_directory("crashes");
-	CopyStr(0xCC8B64, "crashes\\crash_%m%d_%H%M%S.txt");
+	std::filesystem::create_directory("crashes");
+	injector::WriteMemory(0xCC8B64, "crashes\\crash_%m%d_%H%M%S.txt");
 
 	//LoadDatafile("mods/data/safehouse.txt", 0, (BYTE*)1, 1);
 
@@ -591,27 +582,27 @@ HWND __cdecl InitializeGameWindow(LPCWSTR lpWindowName, int xRight, int yBottom,
 	if (bBorderless)
 		dwStyle = WS_VISIBLE | WS_POPUP;
 
-	return Cdecl<HWND>(0x8C4D80, lpWindowName, xRight, yBottom, dwStyle);
+	return injector::fastcall<HWND(LPCWSTR, int, int, DWORD)>::call(0x8C4D80, lpWindowName, xRight, yBottom, dwStyle);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
 {
 	if (nReason == DLL_PROCESS_ATTACH)
 	{
-		MakeCALL(0x7AD13C, ApplyDebugPatches);
+		injector::MakeCALL(0x7AD13C, ApplyDebugPatches);
 
-		MakeCALL(0x8CA6A1, InitializeGameWindow);
+		injector::MakeCALL(0x8CA6A1, InitializeGameWindow);
 		//MakeCALL(0x8CA6A1, CreateWindowHk);
 		//MakeJMP(0x8C4D80, CreateWindowHk);
 		//Call<int>(, CreateWindowHk);
 
-		MakeCALL(0xA532D0, mmmmmmno); // no more XLiveRender it die 1950-2020
+		injector::MakeCALL(0xA532D0, mmmmmmno); // no more XLiveRender it die 1950-2020
 		//MakeNOP(0x8C4CBB, 40);
 
-		MakeJMP(0xA3A0E0, DebugLog);
+		injector::MakeJMP(0xA3A0E0, DebugLog);
 
-		MakeCALL(0x728246, QuietAssert);
-		MakeCALL(0x7282F7, QuietAssert);
+		injector::MakeCALL(0x728246, QuietAssert);
+		injector::MakeCALL(0x7282F7, QuietAssert);
 
 		//MakeCALL(0x743B26, LoadDatafile);
 
@@ -625,7 +616,7 @@ BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
 		//MH_CreateHook((void*)0x727DD0, ProcessDatafile, (void**)&g_processDataFileOrig);
 		MH_EnableHook(MH_ALL_HOOKS);
 
-		MakeCALL(0x7B3002, OnRender);
+		injector::MakeCALL(0x7B3002, OnRender);
 		attach_console();
 	}
 	return TRUE;
