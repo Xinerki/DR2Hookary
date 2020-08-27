@@ -242,8 +242,7 @@ void RenderText(float posX, float posY, float r, float g, float b, float a, char
 	//injector::function_hooker_thiscall<0xA71900, DWORD, float, float, float, float, float, float, char*, float, int, int, scale>();
 
 	//hook::ThisCall<void>(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
-	injector::thiscall<void(DWORD,float,float,float,float,float,float,char*,float,int,int,float>
-		::call(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
+	injector::thiscall<void(DWORD,float,float,float,float,float,float,char*,float,int,int,float)>::call(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
 }
 
 double __cdecl OnRender(__int64 a1, __int64 a2)
@@ -251,7 +250,7 @@ double __cdecl OnRender(__int64 a1, __int64 a2)
 	// 0.94f, 0.59f, 0.24f
 	RenderText(0.05f, 0.075f, 1.0f, 1.0f, 1.0f, 1.0f, "KGDR2? :)", 0.0f, 2, 1.0f);
 
-	return injector::fastcall<double(int64_t, int64_t)>::call(0xA3A500, a1, a2);
+	return injector::cstd<double(int64_t, int64_t)>::call(0xA3A500, a1, a2);
 }
 
 /*
@@ -510,13 +509,13 @@ bool bBorderless = GetPrivateProfileIntA("GLOBAL", "borderless", 0, ".\\DR2Hooka
 
 void ApplyDebugPatches(int __)
 {
-	injector::fastcall<void(int)>::call(0x7BC490, __); // LoadIniConfig
+	injector::cstd<void(int)>::call(0x7BC490, __); // LoadIniConfig
 
 #ifdef BLUE_MENU
-		//MemWrite(0xDDCB28, 1); // debug_show_loading_time
-		injector::WriteMemory(0xDDCAD4, 1); // enable_dev_features
-		injector::WriteMemory(0xDDC96F, 1); // limited_debug_menu
-		injector::WriteMemory(0xDDCB1F, 1); // enable_one_button_debug_menu
+	//MemWrite(0xDDCB28, 1); // debug_show_loading_time
+	injector::WriteMemory(0xDDCAD4, 1); // enable_dev_features
+	injector::WriteMemory(0xDDC96F, 1); // limited_debug_menu
+	injector::WriteMemory(0xDDCB1F, 1); // enable_one_button_debug_menu
 #endif
 
 	injector::WriteMemory(0xD63FCC, !bDebugEnabled); // IsRetail
@@ -562,11 +561,11 @@ void ApplyDebugPatches(int __)
 	//MakeCALL(0x83EAD3, OnLevelLoad);
 
 	// fix a missing newline
-	injector::WriteMemory(0xCEA790, "User: %d change login status! P2P will be shutdown!\n");
+	//injector::WriteMemory(0xCEA790, "User: %d change login status! P2P will be shutdown!\n");
 
 	// put crashes in separate folder
-	std::filesystem::create_directory("crashes");
-	injector::WriteMemory(0xCC8B64, "crashes\\crash_%m%d_%H%M%S.txt");
+	//std::filesystem::create_directory("crashes");
+	//injector::WriteMemory(0xCC8B64, "crashes\\crash_%m%d_%H%M%S.txt");
 
 	//LoadDatafile("mods/data/safehouse.txt", 0, (BYTE*)1, 1);
 
@@ -584,7 +583,7 @@ HWND __cdecl InitializeGameWindow(LPCWSTR lpWindowName, int xRight, int yBottom,
 	if (bBorderless)
 		dwStyle = WS_VISIBLE | WS_POPUP;
 
-	return injector::fastcall<HWND(LPCWSTR, int, int, DWORD)>::call(0x8C4D80, lpWindowName, xRight, yBottom, dwStyle);
+	return injector::cstd<HWND(LPCWSTR, int, int, DWORD)>::call(0x8C4D80, lpWindowName, xRight, yBottom, dwStyle);
 }
 
 BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
@@ -607,7 +606,7 @@ BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
 		injector::MakeCALL(0x7282F7, QuietAssert);
 
 		//MakeCALL(0x743B26, LoadDatafile);
-
+		
 		//MakeCALL(0x814291, idkman);
 		//MakeCALL(0x744925, snprintfHook);
 
