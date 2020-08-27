@@ -242,6 +242,8 @@ void RenderText(float posX, float posY, float r, float g, float b, float a, char
 	//injector::function_hooker_thiscall<0xA71900, DWORD, float, float, float, float, float, float, char*, float, int, int, scale>();
 
 	//hook::ThisCall<void>(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
+	injector::thiscall<void(DWORD,float,float,float,float,float,float,char*,float,int,int,float>
+		::call(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
 }
 
 double __cdecl OnRender(__int64 a1, __int64 a2)
