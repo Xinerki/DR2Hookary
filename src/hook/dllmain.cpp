@@ -1,6 +1,11 @@
 #include <StdInc.h>
 #include "MinHook.h"
 
+using namespace injector;
+
+//#define BLUE_MENU // it's not fun
+//#define BORDERLESS_STANDALONE
+
 char* OutfitTable[1024] = {
 	"OUTFIT_DEFAULT",
 	"OUTFIT_COWBOY",
@@ -239,10 +244,10 @@ bool& RenderLocalPlayerPoisition = *reinterpret_cast<bool*>(0xDDCAEE);
 
 void RenderText(float posX, float posY, float r, float g, float b, float a, char *text, float idk, int s1, float scale)
 {
-	//injector::function_hooker_thiscall<0xA71900, DWORD, float, float, float, float, float, float, char*, float, int, int, scale>();
+	//function_hooker_thiscall<0xA71900, DWORD, float, float, float, float, float, float, char*, float, int, int, scale>();
 
 	//hook::ThisCall<void>(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
-	injector::thiscall<void(DWORD,float,float,float,float,float,float,char*,float,int,int,float)>::call(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
+	thiscall<void(DWORD,float,float,float,float,float,float,char*,float,int,int,float)>::call(0xA71900, FontRoot, posX, posY, r, g, b, a, text, idk, s1, 0, scale);
 }
 
 double __cdecl OnRender(__int64 a1, __int64 a2)
@@ -250,7 +255,7 @@ double __cdecl OnRender(__int64 a1, __int64 a2)
 	// 0.94f, 0.59f, 0.24f
 	RenderText(0.05f, 0.075f, 1.0f, 1.0f, 1.0f, 1.0f, "KGDR2? :)", 0.0f, 2, 1.0f);
 
-	return injector::cstd<double(int64_t, int64_t)>::call(0xA3A500, a1, a2);
+	return cstd<double(int64_t, int64_t)>::call(0xA3A500, a1, a2);
 }
 
 /*
@@ -272,10 +277,10 @@ DWORD& DatafileRoot2 = *reinterpret_cast<DWORD*>(0xDCB0FC);
 
 BYTE* AnotherLoadDatafile(BYTE* _this, size_t FILE, int a3, int a4, int a5, int a6)
 {
-	DWORD DatafileRoot2 = injector::ReadMemory<DWORD>(0xE125C8);
+	DWORD DatafileRoot2 = ReadMemory<DWORD>(0xE125C8);
 
 	//return ThisCall<BYTE*>(0xA36B30, DatafileRoot, FILE, a3, a4, a5, a6, a7);
-	return injector::thiscall<BYTE* (byte*, size_t, int, int, int, int)>::call(0x8C0350, _this, (size_t)&FILE, a3, a4, a5, a6); // might not need _this
+	return thiscall<BYTE* (byte*, size_t, int, int, int, int)>::call(0x8C0350, _this, (size_t)&FILE, a3, a4, a5, a6); // might not need _this
 }
 
 
@@ -352,7 +357,7 @@ void CatchThis2(DWORD* _this)
 
 int* GetLabelText(int _this, int id)
 {
-	return injector::thiscall<int*(int, int)>::call(0xAC5400, _this, id); // might not need _this
+	return thiscall<int*(int, int)>::call(0xAC5400, _this, id); // might not need _this
 }
 
 int OnLevelLoad(int a1)
@@ -422,7 +427,7 @@ int OnLevelLoad(int a1)
 
 	Log("Mod load attempt done");
 
-	return injector::stdcall<int(int)>::call(0xA56D30, a1);
+	return stdcall<int(int)>::call(0xA56D30, a1);
 }
 
 /*
@@ -495,44 +500,51 @@ int snprintfHook(char* Buffer, size_t Size, char* _Format, ...)
 
 int __cdecl GetOutfitIdByName(const char* a1)
 {
-	return injector::stdcall<int(const char*)>::call(0x41FF30, a1);
+	return stdcall<int(const char*)>::call(0x41FF30, a1);
 }
 
+#ifdef BORDERLESS_STANDALONE
+bool bWindowed = true;
+bool bBorderless = true;
+#else
 bool bDebugEnabled = GetPrivateProfileIntA("GLOBAL", "debug_enabled", 0, ".\\DR2Hookary.ini") == 1;
 bool bEnableQuickieDebugMenu = GetPrivateProfileIntA("GLOBAL", "enable_quickie_debug_menu", 0, ".\\DR2Hookary.ini") == 1;
 bool bEnableDebugJumpMenu = GetPrivateProfileIntA("GLOBAL", "enable_debug_jump_menu", 0, ".\\DR2Hookary.ini") == 1;
 bool bSkipLogos = GetPrivateProfileIntA("GLOBAL", "skip_logos", 0, ".\\DR2Hookary.ini") == 1;
 bool bWindowed = GetPrivateProfileIntA("GLOBAL", "windowed", 0, ".\\DR2Hookary.ini") == 1;
 bool bBorderless = GetPrivateProfileIntA("GLOBAL", "borderless", 0, ".\\DR2Hookary.ini") == 1;
-
-//#define BLUE_MENU // it's not fun
+#endif
 
 void ApplyDebugPatches(int __)
 {
-	injector::cstd<void(int)>::call(0x7BC490, __); // LoadIniConfig
+	cstd<void(int)>::call(0x7BC490, __); // LoadIniConfig
 
 #ifdef BLUE_MENU
 	//MemWrite(0xDDCB28, 1); // debug_show_loading_time
-	injector::WriteMemory(0xDDCAD4, 1); // enable_dev_features
-	injector::WriteMemory(0xDDC96F, 1); // limited_debug_menu
-	injector::WriteMemory(0xDDCB1F, 1); // enable_one_button_debug_menu
+	WriteMemory(0xDDCAD4, 1); // enable_dev_features
+	WriteMemory(0xDDC96F, 1); // limited_debug_menu
+	WriteMemory(0xDDCB1F, 1); // enable_one_button_debug_menu
 #endif
-
-	injector::WriteMemory(0xD63FCC, !bDebugEnabled); // IsRetail
-	injector::WriteMemory(0xDDCAD4, bDebugEnabled); // enable_dev_features
-	injector::WriteMemory(0xDDCB21, bEnableQuickieDebugMenu); // enable_quickie_debug_menu - needs to be toggled later?
-	injector::WriteMemory(0xDDCB1E, bEnableQuickieDebugMenu); // enable_dev_only_debug_tiwwchnt
-	injector::WriteMemory(0xDDCB29, bEnableDebugJumpMenu); // enable_debug_jump_menu
-	injector::WriteMemory(0xDDCC5B, bSkipLogos); // skip_logos
+	
+#ifndef BORDERLESS_STANDALONE
+	WriteMemory(0xD63FCC, !bDebugEnabled); // IsRetail
+	WriteMemory(0xDDCAD4, bDebugEnabled); // enable_dev_features
+	WriteMemory(0xDDCB21, bEnableQuickieDebugMenu); // enable_quickie_debug_menu - needs to be toggled later?
+	WriteMemory(0xDDCB1E, bEnableQuickieDebugMenu); // enable_dev_only_debug_tiwwchnt
+	WriteMemory(0xDDCB29, bEnableDebugJumpMenu); // enable_debug_jump_menu
+	WriteMemory(0xDDCC5B, bSkipLogos); // skip_logos
+#else
+	WriteMemory(0xDDCC5B, 1); // skip_logos
+#endif
 
 	if (bWindowed == true)
 	{
-		injector::WriteMemory(0xDDCADD, 1); // OverrideRenderSettings
-		injector::WriteMemory(0xDDCADE, 0); // RenderFullScreen
+		WriteMemory(0xDDCADD, 1); // OverrideRenderSettings
+		WriteMemory(0xDDCADE, 0); // RenderFullScreen
 	}
 
-	injector::WriteMemory(0xDE25F2, 1); // SilentExitOnCrash, fixes quit 'crash'
-	injector::WriteMemory(0xE5B73C, 1); // dont debug break from inside exe
+	WriteMemory(0xDE25F2, 1); // SilentExitOnCrash, fixes quit 'crash'
+	WriteMemory(0xE5B73C, 1); // dont debug break from inside exe
 
 	/*
 	for (int i = 0; i < 192; i++)
@@ -561,11 +573,11 @@ void ApplyDebugPatches(int __)
 	//MakeCALL(0x83EAD3, OnLevelLoad);
 
 	// fix a missing newline
-	//injector::WriteMemory(0xCEA790, "User: %d change login status! P2P will be shutdown!\n");
+	//WriteMemory(0xCEA790, "User: %d change login status! P2P will be shutdown!\n");
 
 	// put crashes in separate folder
 	//std::filesystem::create_directory("crashes");
-	//injector::WriteMemory(0xCC8B64, "crashes\\crash_%m%d_%H%M%S.txt");
+	//WriteMemory(0xCC8B64, "crashes\\crash_%m%d_%H%M%S.txt");
 
 	//LoadDatafile("mods/data/safehouse.txt", 0, (BYTE*)1, 1);
 
@@ -578,47 +590,122 @@ void ApplyDebugPatches(int __)
 	*/
 }
 
+void OTR_ApplyDebugPatches(int __)
+{
+	WriteMemory(0xDEC1D5, 1); // skip_logos
+	if (bWindowed == true)
+	{
+		WriteMemory(0xDEC043, 1); // OverrideRenderSettings
+		WriteMemory(0xDEC044, 0); // RenderFullScreen
+	}
+}
+
+bool isOtr;
+
 HWND __cdecl InitializeGameWindow(LPCWSTR lpWindowName, int xRight, int yBottom, DWORD dwStyle)
 {
-	if (bBorderless)
+	if (bWindowed && bBorderless)
+	{
+		dwStyle = WS_VISIBLE | WS_POPUP;
+		Log("Made the window borderless, enjoy!");
+	}
+
+	if (isOtr)
+		return cstd<HWND(LPCWSTR, int, int, DWORD)>::call(0x906820, lpWindowName, xRight, yBottom, dwStyle);
+
+	return cstd<HWND(LPCWSTR, int, int, DWORD)>::call(0x8C4D80, lpWindowName, xRight, yBottom, dwStyle);
+}
+
+BOOL OTR_AdjustWindowRect(LPRECT lpRect, DWORD dwStyle, BOOL bMenu)
+{
+	if (bWindowed && bBorderless)
 		dwStyle = WS_VISIBLE | WS_POPUP;
 
-	return injector::cstd<HWND(LPCWSTR, int, int, DWORD)>::call(0x8C4D80, lpWindowName, xRight, yBottom, dwStyle);
+	return AdjustWindowRect(lpRect, dwStyle, bMenu);
 }
+
+LONG __stdcall OTR_SetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	//if (bWindowed && bBorderless)
+		//dwNewLong = WS_VISIBLE | WS_POPUP;
+
+	return SetWindowLongW(hWnd, nIndex, dwNewLong);
+}
+
+int addrToCheck = 0x6C2FFD;
+BYTE dr2Val = 0x8B;
+BYTE dr2OtrVal = 0x0F;
 
 BOOL WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID lpvReserved)
 {
 	if (nReason == DLL_PROCESS_ATTACH)
 	{
-		injector::MakeCALL(0x7AD13C, ApplyDebugPatches);
-
-		injector::MakeCALL(0x8CA6A1, InitializeGameWindow);
-		//MakeCALL(0x8CA6A1, CreateWindowHk);
-		//MakeJMP(0x8C4D80, CreateWindowHk);
-		//Call<int>(, CreateWindowHk);
-
-		injector::MakeCALL(0xA532D0, mmmmmmno); // no more XLiveRender it die 1950-2020
-		//MakeNOP(0x8C4CBB, 40);
-
-		injector::MakeJMP(0xA3A0E0, DebugLog);
-
-		injector::MakeCALL(0x728246, QuietAssert);
-		injector::MakeCALL(0x7282F7, QuietAssert);
-
-		//MakeCALL(0x743B26, LoadDatafile);
-		
-		//MakeCALL(0x814291, idkman);
-		//MakeCALL(0x744925, snprintfHook);
-
-		MH_Initialize();
-		//MH_CreateHook((void*)0x8C4D80, CreateWindowHk, (void**)&g_createWindowOrig);
-		//MH_CreateHook(&DefWindowProcW, wndProxy, (void**)&g_origWndProc);
-		//MH_CreateHook((void*)0xA36B30, LoadDatafile, (void**)&g_loadDataFileOrig);
-		//MH_CreateHook((void*)0x727DD0, ProcessDatafile, (void**)&g_processDataFileOrig);
-		MH_EnableHook(MH_ALL_HOOKS);
-
-		injector::MakeCALL(0x7B3002, OnRender);
+#ifndef BORDERLESS_STANDALONE
 		attach_console();
+#endif
+
+		Log("Detecting game...");
+
+		BYTE randomAddr = ReadMemory<BYTE>(addrToCheck);
+
+		isOtr = randomAddr == dr2OtrVal;
+
+		if (randomAddr == dr2Val)
+		{
+			Log("Detected game: DR2");
+
+			MakeCALL(0x7AD13C, ApplyDebugPatches);
+
+			MakeCALL(0x8CA6A1, InitializeGameWindow);
+			//MakeCALL(0x8CA6A1, CreateWindowHk);
+			//MakeJMP(0x8C4D80, CreateWindowHk);
+			//Call<int>(, CreateWindowHk);
+
+			MakeCALL(0xA532D0, mmmmmmno); // no more XLiveRender it die 1950-2020
+			//MakeNOP(0x8C4CBB, 40);
+
+			MakeJMP(0xA3A0E0, DebugLog);
+
+			MakeCALL(0x728246, QuietAssert);
+			MakeCALL(0x7282F7, QuietAssert);
+
+			//MakeCALL(0x743B26, LoadDatafile);
+
+			//MakeCALL(0x814291, idkman);
+			//MakeCALL(0x744925, snprintfHook);
+
+			MH_Initialize();
+			//MH_CreateHook((void*)0x8C4D80, CreateWindowHk, (void**)&g_createWindowOrig);
+			//MH_CreateHook(&DefWindowProcW, wndProxy, (void**)&g_origWndProc);
+			//MH_CreateHook((void*)0xA36B30, LoadDatafile, (void**)&g_loadDataFileOrig);
+			//MH_CreateHook((void*)0x727DD0, ProcessDatafile, (void**)&g_processDataFileOrig);
+			MH_EnableHook(MH_ALL_HOOKS);
+
+			MakeCALL(0x7B3002, OnRender);
+		}
+		else if (randomAddr == dr2OtrVal) 
+		{
+			Log("Detected game: DR2OTR");
+
+			MakeCALL(0x7E7322, OTR_ApplyDebugPatches);
+			MakeCALL(0x909AE0, InitializeGameWindow);
+
+			//MakeCALL(0xA2EFE1, OTR_SetWindowLongW);
+			//MakeCALL(0xA2F040, OTR_SetWindowLongW);
+			//MakeCALL(0xA351E3, OTR_SetWindowLongW);
+			//MakeCALL(0xA352B0, OTR_SetWindowLongW);
+
+			//MakeCALL(0xA2EFCB, OTR_AdjustWindowRect);
+			//MakeCALL(0xA2F02C, OTR_AdjustWindowRect);
+			//MakeCALL(0xA35209, OTR_AdjustWindowRect);
+			//MakeCALL(0xA352D8, OTR_AdjustWindowRect);
+			//MakeNOP(0xA352CB, 19);
+			//MakeCALL(0xA353C9, OTR_AdjustWindowRect);
+		}
+		else
+		{
+			Log("Detected game: Unknown. What on earth are you doing?");
+		}
 	}
 	return TRUE;
 }
