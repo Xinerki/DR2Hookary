@@ -1,5 +1,5 @@
 systemversion "10.0.18362.0"
-toolset "v142"
+toolset "v143"
 platforms { "x86" }
 
 workspace "KG.DR2"
