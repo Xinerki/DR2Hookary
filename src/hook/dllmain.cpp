@@ -544,6 +544,9 @@ void ApplyDebugPatches(int __)
 	injector::WriteMemory(0xDE25F2, 1); // SilentExitOnCrash, fixes quit 'crash'
 	injector::WriteMemory(0xE5B73C, 1); // dont debug break from inside exe
 
+	// injector::WriteMemory(0xDDC9E0, 5120); // dwSizeWindowX
+	// injector::WriteMemory(0xDDC9E4, 2560); // dwSizeWindowY
+
 	/*
 	for (int i = 0; i < 192; i++)
 		Log("Outfit ID %d = %s", i, OutfitTable[i]);
